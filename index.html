@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onion Storage Guardian Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+</head>
+<body class="bg-gray-200">
+
+    <div id="root" class="flex flex-col items-center justify-center min-h-screen p-4 font-sans antialiased">
+    </div>
+
+</body>
+</html>
+```
+
+***
+
+### Step 2: Add the App's Interface (HTML)
+
+Now, we'll add the visible parts of the app, including the "Connect" button, the dashboard panels for data, and the simulation area.
+
+Copy the following HTML code and **paste it inside the `<div id="root">`** from the previous step.
+
+```html
+<div class="w-full max-w-4xl bg-white p-6 rounded-2xl shadow-xl space-y-8">
+  <header class="text-center">
+    <h1 class="text-4xl font-bold text-gray-800">Onion Storage Guardian Prototype</h1>
+    <p class="text-gray-500 mt-2">Simulated monitoring interface</p>
+  </header>
+
+  <!-- Initial Connect Screen -->
+  <div id="connect-screen" class="text-center p-8 border-2 border-dashed border-gray-300 rounded-xl space-y-4">
+    <p class="text-lg text-gray-600">
+      This is a prototype app. Click "Connect" to begin the simulation and see live data.
+    </p>
+    <button id="connect-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-colors duration-200">
+      Connect to Unit
+    </button>
+  </div>
+
+  <!-- Main Dashboard -->
+  <div id="dashboard" class="hidden grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Environmental Conditions Panel -->
+    <div class="bg-blue-50 p-6 rounded-xl shadow-md space-y-4">
+      <h2 class="text-2xl font-semibold text-blue-800">Environmental Conditions</h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-white p-4 rounded-xl shadow-inner text-center">
+          <p class="text-sm text-gray-500">Temperature</p>
+          <p id="temp-display" class="text-4xl font-bold text-blue-600 mt-1">--°C</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-inner text-center">
+          <p class="text-sm text-gray-500">Humidity</p>
+          <p id="humidity-display" class="text-4xl font-bold text-blue-600 mt-1">--%</p>
+        </div>
+        <div class="col-span-2 bg-white p-4 rounded-xl shadow-inner text-center">
+          <p class="text-sm text-gray-500">Air Quality</p>
+          <p id="air-quality-display" class="text-3xl font-bold mt-1 text-gray-500">--</p>
+        </div>
+        <div class="col-span-2 bg-white p-4 rounded-xl shadow-inner text-center">
+          <p class="text-sm text-gray-500">Gas Presence</p>
+          <p id="gas-display" class="text-3xl font-bold mt-1 text-gray-500">--</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Simulation & Alerts Panel -->
+    <div class="bg-green-50 p-6 rounded-xl shadow-md space-y-4">
+      <h2 class="text-2xl font-semibold text-green-800">System Status & Simulation</h2>
+      <div id="unit-simulation" class="relative w-full h-80 bg-gray-100 rounded-lg overflow-hidden shadow-inner">
+        <!-- Unit exterior -->
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="w-1/2 h-full bg-white border-8 border-yellow-400 rounded-lg shadow-xl"></div>
+        </div>
+        <!-- Inner shelves -->
+        <div class="absolute inset-0 flex flex-col justify-around p-4">
+          <div class="h-16 bg-gray-300 rounded-md shadow-md"></div>
+          <div class="h-16 bg-gray-300 rounded-md shadow-md"></div>
+          <div class="h-16 bg-gray-300 rounded-md shadow-md"></div>
+        </div>
+        <!-- Anomaly Highlight -->
+        <div id="anomaly-highlight" class="absolute inset-0 flex items-center justify-center bg-red-500 opacity-0 rounded-lg transition-opacity duration-500"></div>
+      </div>
+
+      <button id="release-gases-button" class="w-full py-3 rounded-lg font-bold text-white transition-colors duration-200 bg-gray-400 cursor-not-allowed">
+        Release Gases via Vents
+      </button>
+
+      <div class="space-y-2">
+        <h3 class="text-lg font-medium">System Alerts</h3>
+        <div id="alerts-container">
+          <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-2 rounded-md text-sm">
+            All systems are operating normally.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center text-gray-400 text-sm mt-8">
+    <p>© 2025 Onion Storage Guardian. All rights reserved.</p>
+  </footer>
+</div>
+```
+
+***
+
+### Step 3: Add the App's Logic (JavaScript)
+
+Finally, add the JavaScript code that makes the app interactive. This code will handle button clicks, update the data displays, and simulate real-time sensor readings.
+
+Copy the `<script>` block below and **paste it right before the closing `</body>` tag** in your `onion_guardian_app.html` file.
+
+```javascript
+<script>
+  let data = {
+    temperature: 4.0,
+    humidity: 65,
+    gasPresent: false,
+    airQuality: 'Good',
+    defectDetected: false,
+  };
+
+  let notifications = [];
+  let isConnected = false;
+  let sensorInterval;
+
+  const connectScreen = document.getElementById('connect-screen');
+  const dashboard = document.getElementById('dashboard');
+  const connectButton = document.getElementById('connect-button');
+  const releaseGasesButton = document.getElementById('release-gases-button');
+  const tempDisplay = document.getElementById('temp-display');
+  const humidityDisplay = document.getElementById('humidity-display');
+  const airQualityDisplay = document.getElementById('air-quality-display');
+  const gasDisplay = document.getElementById('gas-display');
+  const anomalyHighlight = document.getElementById('anomaly-highlight');
+  const alertsContainer = document.getElementById('alerts-container');
+
+  const updateUI = () => {
+    tempDisplay.textContent = `${data.temperature}°C`;
+    humidityDisplay.textContent = `${data.humidity}%`;
+    
+    airQualityDisplay.textContent = data.airQuality;
+    airQualityDisplay.className = `text-3xl font-bold mt-1 ${data.airQuality === 'Good' ? 'text-green-500' : 'text-red-500'}`;
+
+    gasDisplay.textContent = data.gasPresent ? 'Detected' : 'None';
+    gasDisplay.className = `text-3xl font-bold mt-1 ${data.gasPresent ? 'text-red-500' : 'text-green-500'}`;
+    
+    if (data.defectDetected) {
+        anomalyHighlight.classList.add('animate-pulse');
+        anomalyHighlight.classList.remove('opacity-0');
+        anomalyHighlight.classList.add('opacity-50');
+    } else {
+        anomalyHighlight.classList.remove('animate-pulse', 'opacity-50');
+        anomalyHighlight.classList.add('opacity-0');
+    }
+
+    releaseGasesButton.disabled = !data.gasPresent;
+    if (data.gasPresent) {
+      releaseGasesButton.classList.add('bg-red-500', 'hover:bg-red-600');
+      releaseGasesButton.classList.remove('bg-gray-400');
+    } else {
+      releaseGasesButton.classList.add('bg-gray-400');
+      releaseGasesButton.classList.remove('bg-red-500', 'hover:bg-red-600');
+    }
+  };
+
+  const addNotification = (message) => {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'bg-red-100 border-l-4 border-red-500 text-red-700 p-2 rounded-md text-sm';
+    alertDiv.textContent = message;
+    alertsContainer.prepend(alertDiv);
+    while (alertsContainer.children.length > 5) {
+      alertsContainer.lastChild.remove();
+    }
+  };
+
+  const releaseGases = () => {
+    data.gasPresent = false;
+    data.airQuality = 'Good';
+    addNotification('Gases released. Air quality improving.');
+    updateUI();
+  };
+
+  const simulateSensorData = () => {
+    const newTemp = 4.0 + (Math.random() * 2 - 1) * 0.5;
+    const newHumidity = 65 + (Math.random() * 2 - 1) * 2;
+    const newGasPresent = Math.random() > 0.9;
+    const newAirQuality = newGasPresent ? 'Poor' : 'Good';
+    let newDefectDetected = false;
+    let newNotification = null;
+
+    if (newTemp > 4.5 || newTemp < 3.5) {
+      newDefectDetected = true;
+      newNotification = 'ALERT: Temperature outside optimal range!';
+    } else if (newHumidity > 70) {
+      newDefectDetected = true;
+      newNotification = 'WARNING: Humidity is too high!';
+    } else if (newGasPresent) {
+      newDefectDetected = true;
+      newNotification = 'ALERT: Harmful gases detected!';
+    }
+
+    data = {
+      temperature: parseFloat(newTemp.toFixed(1)),
+      humidity: parseFloat(newHumidity.toFixed(1)),
+      gasPresent: newGasPresent,
+      airQuality: newAirQuality,
+      defectDetected: newDefectDetected,
+    };
+
+    if (newNotification) {
+      addNotification(newNotification);
+    }
+    updateUI();
+  };
+
+  const handleConnect = () => {
+    isConnected = true;
+    connectScreen.classList.add('hidden');
+    dashboard.classList.remove('hidden');
+    dashboard.classList.add('grid');
+    addNotification('Connected to Onion Storage Unit. Live data streaming...');
+    sensorInterval = setInterval(simulateSensorData, 3000);
+  };
+
+  connectButton.addEventListener('click', handleConnect);
+  releaseGasesButton.addEventListener('click', releaseGases);
+</script>
